@@ -122,12 +122,15 @@ impl<P: Platform> ServiceResources<P> {
         );
         let filestore = &mut filestore;
 
+        // let response = match request {
         match request {
             Request::DummyRequest => {
+                warn!("    Request: Dummy");
                 Ok(Reply::DummyReply)
             },
 
             Request::Agree(request) => {
+                warn!("    Request: Agree {:?}", request.mechanism);
                 match request.mechanism {
 
                     Mechanism::P256 => mechanisms::P256::agree(keystore, request),
@@ -138,6 +141,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::Attest(request) => {
+                warn!("    Request: Attest");
                 let mut attn_keystore: ClientKeystore<P> = ClientKeystore::new(
                     PathBuf::from("attn"),
                     self.drbg().map_err(|_| Error::EntropyMalfunction)?,
@@ -147,6 +151,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::Decrypt(request) => {
+                warn!("    Request. Decrypt {} bytes {:?}", request.message.len(), request.mechanism);
                 match request.mechanism {
 
                     Mechanism::Aes256Cbc => mechanisms::Aes256Cbc::decrypt(keystore, request),
@@ -158,6 +163,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::DeriveKey(request) => {
+                warn!("    Request.DeriveKey {:?}", request.mechanism);
                 match request.mechanism {
 
                     Mechanism::HmacSha1 => mechanisms::HmacSha256::derive_key(keystore, request),
@@ -173,6 +179,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::DeserializeKey(request) => {
+                warn!("    Request.DeserializeKey");
                 match request.mechanism {
 
                     Mechanism::Ed255 => mechanisms::Ed255::deserialize_key(keystore, request),
@@ -184,6 +191,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::Encrypt(request) => {
+                warn!("    Request. Encrypt {} bytes {:?}", request.message.len(), request.mechanism);
                 match request.mechanism {
 
                     Mechanism::Aes256Cbc => mechanisms::Aes256Cbc::encrypt(keystore, request),
@@ -195,16 +203,19 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::Delete(request) => {
+                warn!("    Request.Delete");
                 let success = keystore.delete_key(&request.key.object_id);
                 Ok(Reply::Delete(reply::Delete { success } ))
             },
 
             Request::DeleteAllKeys(request) => {
+                warn!("    Request.DeleteAllKeys");
                 let count = keystore.delete_all(request.location)?;
                 Ok(Reply::DeleteAllKeys(reply::DeleteAllKeys { count } ))
             },
 
             Request::Exists(request) => {
+                warn!("    Request.Exists");
                 match request.mechanism {
 
                     Mechanism::Ed255 => mechanisms::Ed255::exists(keystore, request),
@@ -217,6 +228,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::GenerateKey(request) => {
+                warn!("    Request.GenerateKey {:?}", request.mechanism);
                 match request.mechanism {
                     Mechanism::Chacha8Poly1305 => mechanisms::Chacha8Poly1305::generate_key(keystore, request),
                     Mechanism::Ed255 => mechanisms::Ed255::generate_key(keystore, request),
@@ -227,6 +239,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::GenerateSecretKey(request) => {
+                warn!("    Request.GenerateSecretKey");
                 let mut secret_key = MediumData::new();
                 let size = request.size;
                 secret_key.resize_default(request.size).map_err(|_| Error::ImplementationError)?;
@@ -242,10 +255,12 @@ impl<P: Platform> ServiceResources<P> {
 
             // deprecated
             Request::UnsafeInjectKey(_request) => {
+                warn!("    Request.UnsafeInjectKey");
                 Err(Error::MechanismNotAvailable)
             },
 
             Request::UnsafeInjectSharedKey(request) => {
+                warn!("    Request.UnsafeInjectSharedKey");
                 let key = ObjectHandle { object_id: keystore.store_key(
                     request.location,
                     key::Secrecy::Secret,
@@ -257,6 +272,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::Hash(request) => {
+                warn!("    Request.Hash Sha256 {} bytes", request.message.len());
                 match request.mechanism {
 
                     Mechanism::Sha256 => mechanisms::Sha256::hash(keystore, request),
@@ -266,6 +282,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::LocateFile(request) => {
+                warn!("    Request.LocateFile");
                 let path = filestore.locate_file(request.location, request.dir.clone(), request.filename.clone())?;
 
                 Ok(Reply::LocateFile(reply::LocateFile { path }) )
@@ -274,6 +291,7 @@ impl<P: Platform> ServiceResources<P> {
             // This is now preferably done using littlefs-fuse (when device is not yet locked),
             // and should be removed from firmware completely
             Request::DebugDumpStore(_request) => {
+                warn!("    Request.DebugDumpStore");
 
                 info_now!(":: PERSISTENT");
                 recursively_list(self.platform.store().ifs(), PathBuf::from("/"));
@@ -309,6 +327,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::ReadDirFirst(request) => {
+                warn!("    Request.ReadDirFirst");
                 let maybe_entry = match filestore.read_dir_first(&request.dir, request.location, request.not_before_filename.as_ref())? {
                     Some((entry, read_dir_state)) => {
                         self.read_dir_state = Some(read_dir_state);
@@ -324,6 +343,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::ReadDirNext(_request) => {
+                warn!("    Request.ReadDirNext");
                 // ensure next call has nothing to work with, unless we store state again
                 let read_dir_state = self.read_dir_state.take();
 
@@ -347,6 +367,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::ReadDirFilesFirst(request) => {
+                warn!("    Request.ReadDirFilesFirst");
                 let maybe_data = match filestore.read_dir_files_first(&request.dir, request.location, request.user_attribute.clone())? {
                     Some((data, state)) => {
                         self.read_dir_files_state = Some(state);
@@ -361,6 +382,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::ReadDirFilesNext(_request) => {
+                warn!("    Request.ReadDirFilesNext");
                 let read_dir_files_state = self.read_dir_files_state.take();
 
                 let maybe_data = match read_dir_files_state {
@@ -382,27 +404,32 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::RemoveDir(request) => {
+                warn!("    Request.RemoveDir");
                 filestore.remove_dir(&request.path, request.location)?;
                 Ok(Reply::RemoveDir(reply::RemoveDir {} ))
             }
 
             Request::RemoveDirAll(request) => {
+                warn!("    Request.RemoveDirAll");
                 let count = filestore.remove_dir_all(&request.path, request.location)?;
                 Ok(Reply::RemoveDirAll(reply::RemoveDirAll { count } ))
             }
 
             Request::RemoveFile(request) => {
+                warn!("    Request.RemoveFile");
                 filestore.remove_file(&request.path, request.location)?;
                 Ok(Reply::RemoveFile(reply::RemoveFile {} ))
             }
 
             Request::ReadFile(request) => {
+                warn!("    Request.ReadFile");
                 Ok(Reply::ReadFile(reply::ReadFile {
                     data: filestore.read(&request.path, request.location)?
                 }))
             }
 
             Request::RandomBytes(request) => {
+                warn!("    Request.RandomBytes");
                 if request.count < 1024 {
                     let mut bytes = Message::new();
                     bytes.resize_default(request.count).unwrap();
@@ -414,6 +441,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::SerializeKey(request) => {
+                warn!("    Request.SerializeKey");
                 match request.mechanism {
 
                     Mechanism::Ed255 => mechanisms::Ed255::serialize_key(keystore, request),
@@ -425,6 +453,7 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::Sign(request) => {
+                warn!("    Request.Sign {:?}", request.mechanism);
                 match request.mechanism {
 
                     Mechanism::Ed255 => mechanisms::Ed255::sign(keystore, request),
@@ -440,11 +469,13 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::WriteFile(request) => {
+                warn!("    Request.WriteFile");
                 filestore.write(&request.path, request.location, &request.data)?;
                 Ok(Reply::WriteFile(reply::WriteFile {} ))
             }
 
             Request::UnwrapKey(request) => {
+                warn!("    Request.UnwrapKey");
                 match request.mechanism {
 
                     Mechanism::Chacha8Poly1305 => mechanisms::Chacha8Poly1305::unwrap_key(keystore, request),
@@ -454,16 +485,26 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::Verify(request) => {
+                warn!("    Request.Verify");
                 match request.mechanism {
 
-                    Mechanism::Ed255 => mechanisms::Ed255::verify(keystore, request),
-                    Mechanism::P256 => mechanisms::P256::verify(keystore, request),
+                    Mechanism::Ed255 => {
+                        warn!("Ed255");
+                        mechanisms::Ed255::verify(keystore, request)
+                    },
+                    Mechanism::P256 =>
+                    {
+                        warn!("P256");
+                        mechanisms::P256::verify(keystore, request)
+
+                    },
                     _ => Err(Error::MechanismNotAvailable),
 
                 }.map(Reply::Verify)
             },
 
             Request::WrapKey(request) => {
+                warn!("    Request.WrapKey");
                 match request.mechanism {
 
                     Mechanism::Aes256Cbc => mechanisms::Aes256Cbc::wrap_key(keystore, request),
@@ -474,6 +515,7 @@ impl<P: Platform> ServiceResources<P> {
             },
 
             Request::RequestUserConsent(request) => {
+                warn!("    Request.RequestUserConsent");
                 assert_eq!(request.level, consent::Level::Normal);
 
                 let starttime = self.platform.user_interface().uptime();
@@ -514,36 +556,43 @@ impl<P: Platform> ServiceResources<P> {
             }
 
             Request::Reboot(request) => {
+                warn!("    Request.rebtoot");
                 self.platform.user_interface().reboot(request.to);
             }
 
             Request::Uptime(_request) => {
+                warn!("    Request.uptime");
                 Ok(Reply::Uptime(reply::Uptime { uptime: self.platform.user_interface().uptime() }))
             }
 
             Request::CreateCounter(request) => {
+                warn!("    Request.cratecotuner");
                 counterstore.create(request.location)
                     .map(|id| Reply::CreateCounter(reply::CreateCounter { id } ))
             }
 
             Request::IncrementCounter(request) => {
+                warn!("    Request.incrementcounter");
                 counterstore.increment(request.id)
                     .map(|counter| Reply::IncrementCounter(reply::IncrementCounter { counter } ))
             }
 
             Request::DeleteCertificate(request) => {
+                warn!("    Request.DeleteCertificate");
                 certstore.delete_certificate(request.id)
                     .map(|_| Reply::DeleteCertificate(reply::DeleteCertificate {} ))
 
             }
 
             Request::ReadCertificate(request) => {
+                warn!("    Request.ReadCertificate");
                 certstore.read_certificate(request.id)
                     .map(|der| Reply::ReadCertificate(reply::ReadCertificate { der } ))
 
             }
 
             Request::WriteCertificate(request) => {
+                warn!("    Request.WriteCertificate");
                 certstore.write_certificate(request.location, &request.der, counterstore)
                     .map(|id| Reply::WriteCertificate(reply::WriteCertificate { id } ))
             }
@@ -554,6 +603,10 @@ impl<P: Platform> ServiceResources<P> {
                 Err(Error::RequestNotAvailable)
             },
         }
+        // let t2 = self.platform.user_interface().uptime();
+        // warn!("trussed-time: {} ms", (t2-t1).as_millis() as u32);
+
+        // response
     }
 
     /// Applies a splitting aka forking construction to the inner DRBG,
@@ -714,12 +767,20 @@ impl<P: Platform> Service<P> {
                 // #[cfg(test)] println!("service got request: {:?}", &request);
 
                 // resources.currently_serving = ep.client_id.clone();
+
+                 let t1 = resources.platform.user_interface().uptime();
+
                 let reply_result = resources.reply_to(ep.client_id.clone(), &request);
-                ep.interchange.respond(reply_result).ok();
+
+                 let t2 = resources.platform.user_interface().uptime();
+
+                warn!("    time: {} ms", (t2-t1).as_millis() as u32);
+
+                ep.interchange.respond(&reply_result).ok();
 
             }
         }
-        debug_now!("I/E/V : {}/{}/{} >",
+        info_now!("I/E/V : {}/{}/{} >",
               self.resources.platform.store().ifs().available_blocks().unwrap(),
               self.resources.platform.store().efs().available_blocks().unwrap(),
               self.resources.platform.store().vfs().available_blocks().unwrap(),
