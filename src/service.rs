@@ -517,10 +517,6 @@ impl<P: Platform> ServiceResources<P> {
                 Ok(Reply::RequestUserConsent(reply::RequestUserConsent { result } ))
             }
 
-            Request::Reboot(request) => {
-                self.platform.user_interface().reboot(request.to);
-            }
-
             Request::Uptime(_request) => {
                 Ok(Reply::Uptime(reply::Uptime { uptime: self.platform.user_interface().uptime() }))
             }

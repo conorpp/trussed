@@ -79,7 +79,6 @@ generate_enums! {
     ////////
 
     RequestUserConsent: 41
-    Reboot: 42
     Uptime: 43
 
     //////////////
@@ -301,9 +300,6 @@ pub mod request {
           - level: consent::Level
           - timeout_milliseconds: u32
 
-        Reboot:
-          - to: reboot::To
-
         Uptime:
 
         CreateCounter:
@@ -448,8 +444,6 @@ pub mod reply {
         // UI
         RequestUserConsent:
             - result: consent::Result
-
-        Reboot:
 
         Uptime:
           - uptime: Duration

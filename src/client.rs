@@ -669,14 +669,6 @@ pub trait FilesystemClient: PollClient {
 /// All the other methods that are fit to expose.
 pub trait ManagementClient: PollClient {
 
-    fn reboot(&mut self, to: reboot::To)
-        -> ClientResult<'_, reply::Reboot, Self>
-    {
-        let r = self.request(request::Reboot { to })?;
-        r.client.syscall();
-        Ok(r)
-    }
-
     fn uptime(&mut self)
         -> ClientResult<'_, reply::Uptime, Self>
     {
